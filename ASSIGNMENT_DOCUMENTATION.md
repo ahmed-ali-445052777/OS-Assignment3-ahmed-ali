@@ -31,30 +31,35 @@
 
 Document your development process with **minimum 3 entries** showing progression:
 
-### Entry 1 - [Date, Time]
+### Entry 1 - [Apr 28, 2026, 9:18 PM]
 **What I implemented**: 
+I changed the  student ID  to my real student ID.
 
 **Challenges encountered**: 
+At first I did not know exactly where the student ID
 
 **How I solved it**: 
-
-**Testing approach**: 
+I searched for `studentID` in VS Code
 
 **Time spent**: 
-
+ 10 minutes
 ---
 
-### Entry 2 - [Date, Time]
+### Entry 2 - [Apr 29, 2026, 10:45 PM]
 **What I implemented**: 
+I added a `ReentrantLock` to protect the shared counter variables in the program.
 
 **Challenges encountered**: 
+I needed to understand why counters like `contextSwitchCount` can be a problem when more than one thread can access them.
 
 **How I solved it**: 
+I used one lock called `counterLock` before updating the shared counters, and I released the lock inside a `finally` block.
 
 **Testing approach**: 
+I checked the methods that update the counters and made sure each update is inside the lock section.
 
 **Time spent**: 
-
+45 minutes
 ---
 
 ### Entry 3 - [Date, Time]
