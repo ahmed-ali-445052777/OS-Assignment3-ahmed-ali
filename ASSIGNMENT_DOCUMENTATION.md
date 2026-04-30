@@ -62,30 +62,39 @@ I checked the methods that update the counters and made sure each update is insi
 45 minutes
 ---
 
-### Entry 3 - [Date, Time]
+### Entry 3 - [ Apr 30, 2026, 11:30 PM]
 **What I implemented**: 
+I added a separate lock for the execution log and used it inside `logExecution()`
 
 **Challenges encountered**: 
+I noticed that `executionLog` is an `ArrayList`, and it can cause problems if more than one thread tries to update it at the same time.
 
 **How I solved it**: 
+I added `logLock` and used it before adding a new message to the log. I also released it in the `finally` block
 
 **Testing approach**: 
+I checked the `logExecution()` method and made sure the add operation is inside the lock
 
 **Time spent**: 
-
+20 minutes
 ---
 
 ### Entry 4 - [Date, Time]
 **What I implemented**: 
+I added a binary semaphore to control CPU access so only one process can execute at a time
 
 **Challenges encountered**: 
 
+At firstI had some errors because the semaphore needs an import and the `release()` must be placed correctly
+
 **How I solved it**: 
+I imported `Semaphore`, added `cpuSemaphore` with one permit, used `acquire()` before the process execution, and used `release()` in the `finally` block.
 
 **Testing approach**: 
+I saved the code and checked that the program compiles and the semaphore code is placed only around the execution part.
 
 **Time spent**: 
-
+47 minutes 
 ---
 
 ### Entry 5 - [Date, Time]
