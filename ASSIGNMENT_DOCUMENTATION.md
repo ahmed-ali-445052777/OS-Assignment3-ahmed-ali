@@ -99,15 +99,19 @@ I saved the code and checked that the program compiles and the semaphore code is
 
 ### Entry 5 - [Date, Time]
 **What I implemented**: 
+I completed the assignment documentation and added the testing results.
 
 **Challenges encountered**: 
+The testing part took some time because I had to run the program more than once and compare the final values.
 
 **How I solved it**: 
+I ran the program several times, wrote down the results, and checked that the completed processes, context switches, and log entries were correct.
 
 **Testing approach**: 
+I used the terminal output from multiple runs and also tried a different time quantum for one test.
 
 **Time spent**: 
-
+3 hours
 ---
 
 ## Part 2: Technical Questions (1 mark)
@@ -219,35 +223,69 @@ I used the lock because these counter updates are critical sections. Only one th
 ### Critical Section #2: Execution Log
 
 **What resource**: 
+`executionLog`.
 
 **Why it needs protection**: 
+`executionLog` is shared between the threads, and it is an `ArrayList`. If more than one thread tries to add a message at the same time, the log may not be updated correctly. Some entries may be missed, or the order may become confusing.
 
 **Synchronization mechanism used**: 
+I used a separate `ReentrantLock` called `logLock`.
 
 **Code snippet**:
 ```java
 // Paste your implementation here
 ```
+public static final ReentrantLock logLock = new ReentrantLock();
 
+public static void logExecution(String message) {
+    logLock.lock();
+    try {
+        executionLog.add(message);
+    } finally {
+        logLock.unlock();
+    }
+}
 **Justification**: 
-
+I used a separate lock for the log because it is a different shared resource from the counters. The lock makes sure only one thread can add to the log at a time. I also used `finally` so the lock will be released after adding the message.
 ---
 
 ### Critical Section #3: CPU Semaphore
 
 **Purpose of semaphore**: 
+The purpose of the semaphore is to control access to the CPU execution part. A process should acquire the semaphore before it starts executing, then release it when it finishes that part.
 
 **Number of permits and why**: 
+I used one permit only: `new Semaphore(1)`. I used one permit because I want only one process to enter the CPU execution section at a time.
 
 **Where implemented**: 
+I added `cpuSemaphore` inside the `SharedResources` class. Then I used `acquire()` at the beginning of the `run()` method, and `release()` in the `finally` block.
 
 **Code snippet**:
+public static final Semaphore cpuSemaphore = new Semaphore(1);
+```
+
 ```java
-// Paste your implementation here
+try {
+    SharedResources.cpuSemaphore.acquire();
+} catch (InterruptedException e) {
+    System.out.println(Colors.RED + "\n  ✗ " + name + " was interrupted." + Colors.RESET);
+    return;
+}
+
+try {
+    if (startTime == -1) {
+        startTime = System.currentTimeMillis();
+    }
+
+    // process execution code
+
+} finally {
+    SharedResources.cpuSemaphore.release();
+}
 ```
 
 **Effect on program behavior**: 
-
+The semaphore makes the CPU execution section controlled. If one process is already using the CPU part, another process must wait until the semaphore is released. This helps avoid two processes entering the same execution part at the same time.
 ---
 
 ## Part 4: Testing and Verification (2 marks)
@@ -259,55 +297,88 @@ I used the lock because these counter updates are critical sections. Only one th
 ```bash
 # Commands used (run the program at least 5 times)
 ```
+javac SchedulerSimulationSync.java
+java SchedulerSimulationSync
+java SchedulerSimulationSync
+java SchedulerSimulationSync
+java SchedulerSimulationSync
+java SchedulerSimulationSync
+```
 
 **Results**: 
 (Show that running multiple times produces consistent, correct results)
+I ran the program five times. The program completed successfully every time and reached the final statistics section. The main values stayed consistent in all runs: the number of completed processes was 16, the number of context switches was 31, and the total log entries was 62.
+
+ Run 1: completed processes = 16, context switches = 31, log entries = 62, total waiting time = 1184652ms
+ Run 2: completed processes = 16, context switches = 31, log entries = 62, total waiting time = 1183298ms
+ Run 3: completed processes = 16, context switches = 31, log entries = 62, total waiting time = 1182568ms
+ Run 4: completed processes = 16, context switches = 31, log entries = 62, total waiting time = 1183720ms
+ Run 5: completed processes = 16, context switches = 31, log entries = 62, total waiting time = 1182029ms
+The waiting time was not exactly the same in every run, which is normal because it depends on real thread timing and system scheduling. However, the important final values stayed correct and the program did not crash.
 
 **Why synchronization is necessary**: 
-(Explain what race conditions COULD occur without synchronization, even if you didn't observe them. Explain which shared resources need protection and why.)
+(Synchronization is necessary because the program has shared data. The counters such as `contextSwitchCount` and `completedProcessCount` are updated by threads, so without a lock one update might overwrite another update. Also, `executionLog` is shared, and without protection the log may miss entries or become unstable. The semaphore is also needed to control the CPU execution part, so only one process enters that part at a time.
+.)
 
 **Conclusion**: 
-
+The test showed that the program is stable after adding synchronization. The locks protected the shared counters and the execution log, while the semaphore controlled access to the CPU execution section.
 ---
 
 ### Test 2: Exception Testing
 **What I tested**: Checking for ConcurrentModificationException
+Checking for ConcurrentModificationException
 
 **Testing procedure**: 
+I ran the program several times and watched the terminal output until the program reached the final statistics. I focused on the execution log part because `executionLog` is an `ArrayList`, and it can cause problems if many threads update it without protection.
 
 **Results**: 
+The program finished normally in all runs. I did not get `ConcurrentModificationException`, and the program printed the execution log summary at the end. The total log entries was 62 in the runs I tested.
 
 **What this proves**: 
-
+This shows that protecting `executionLog` with `logLock` helped make the log update safer. Since only one thread can add to the log at a time, the `ArrayList` is not being updated by multiple threads at the same moment.
 ---
 
 ### Test 3: Correctness Verification
-**What I tested**: Verifying correct final values (total burst time, context switches, etc.)
+**What I tested**: Verifying correct final values (total burst time, context switches)
 
 **Expected values**: 
+I expected the program to finish all created processes and show the final statistics without missing any process. Since my run created 16 processes, I expected `completedProcessCount` to be 16. I also expected the context switch count and log entries to stay the same between runs because the same student ID gives the same process setup.
 
 **Actual values**: 
+The program showed these values in the runs:
+Total Completed Processes: 16
+Total Context Switches: 31
+Total log entries: 62
+The total waiting time changed a little between runs, for example around `1182029ms` to `1184652ms`.
 
 **Analysis**: 
-
+The important values were correct because all 16 processes completed, and the context switches stayed at 31. The execution log entries also stayed at 62, which means the log update was not losing entries. The waiting time was slightly different between runs, but I think this is normal because it depends on the real timing of threads and when the system runs them. Overall, the final values show that the synchronization did not break the scheduler logic.
 ---
 
 ### Test 4: Different Scenarios
 **Scenario tested**: [e.g., different time quantum, more processes, etc.]
+I tested the program with a different time quantum. I changed the time quantum temporarily to `1000` to see if the program still works with a smaller quantum.
 
 **Purpose**: 
+The purpose was to check if the synchronization still works when the scheduling behavior changes. A smaller quantum can create more CPU turns, so I wanted to see if the counters, log, and semaphore still work correctly.
 
 **Results**: 
-
+The program completed successfully and reached the final statistics. The results were:
+Total Context Switches: 24
+ Total Completed Processes: 10
+ Total Waiting Time: 147490ms
+ Average Waiting Time: 14749ms
+ Total log entries: 48
 **What I learned**: 
-
+Changing the time quantum changed the number of processes and the final statistics, but the program still completed without errors. This showed me that the synchronization code was still working even when the scenario was different. After testing, I changed the time quantum line back to the original code.
 ---
 
 ## Part 5: Reflection and Learning
 
 ### What I learned about synchronization:
 
-[6-8 sentences about key concepts, challenges, insights]
+[I learned that synchronization is important when more than one thread uses the same data. Before this assignment, I thought a line like `counter++` is simple and safe, but now I understand it can cause a race condition because it is not really one step. I also learned that the critical section should be protected, but it should not be too large. If I lock too much code, the program may become slower or harder to understand. I used `ReentrantLock` for shared variables because I wanted only one thread to update them at a time. I used `Semaphore` for CPU access because it controls how many threads can enter that part. The hardest part for me was placing `acquire()` and `release()` correctly without causing errors.
+]
 
 ---
 
@@ -316,43 +387,54 @@ I used the lock because these counter updates are critical sections. Only one th
 Give TWO examples where synchronization is critical:
 
 **Example 1**: 
+Bank account transactions. If two withdrawals happen at the same time from the same account, the balance must be updated correctly. Without synchronization, both transactions may read the same old balance and the final balance can be wrong.
 
 **Example 2**: 
+Online ticket or seat booking. If two users try to book the last seat at the same time, the system must allow only one booking to succeed. Without synchronization, the same seat may be sold twice.
 
 ---
 
 ### How I would explain synchronization to others:
 
-[Explain to someone who just finished Assignment 1 - use simple terms and analogies]
+[I would explain synchronization like a key for a shared room. If many people want to enter the same room and change something inside, they should not enter all at once. One person takes the key, enters, finishes the work, then gives the key back. In the program, the shared room is the shared data, and the key is the lock or semaphore. This prevents two threads from changing the same thing at the same time and making the result wrong.]
 
 ---
 
 ## Part 6: GitHub Repository Information
 
-**Repository URL**: 
+**Repository URL**: https://github.com/ahmed-ali-445052777/OS-Assignment3-ahmed-ali
 
-**Number of commits**: 
+
+**Number of commits**: 8 commits
 
 **Commit messages**: 
-1. 
-2. 
-3. 
-4. 
-
+1. Set my student ID
+2. Add protection for counters
+3. Update development log
+4. Protect execution log with lock
+5. Add CPU semaphore
+6.Update development log for synchronization tasks
+7.finish part 2,3
+8.Done Documentation 
 ---
 
 ## Summary
 
 **Total time spent on assignment**: 
-
+5:30 hours
 **Key takeaways**: 
-1. 
-2. 
-3. 
+1.  I learned that shared variables can give wrong results if more than one thread updates them without protection.
+
+2.  I learned how to use `ReentrantLock` for small critical sections like counters and the execution log.
+
+3.  I learned that `Semaphore` can be used to control access to a shared resource, like the CPU execution part.
+
 
 **Most challenging aspect**: 
+The most challenging part was adding the semaphore in the correct place inside `run()` without breaking the code structure.
 
 **What I'm most proud of**: 
+I am proud that the program ran several times without errors and the final results stayed correct after adding synchronization.
 
 ---
 

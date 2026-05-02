@@ -251,7 +251,6 @@ public class SchedulerSimulationSync {
         int studentID = 445052777;  // ← CHANGE THIS TO YOUR ACTUAL STUDENT ID
         
         Random random = new Random(studentID);
-        
         int timeQuantum = 2000 + random.nextInt(4) * 1000;
         int numProcesses = 10 + random.nextInt(11);
         
