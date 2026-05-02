@@ -120,7 +120,9 @@ I saved the code and checked that the program compiles and the semaphore code is
 
 **Your Answer**:
 
-[Your answer here - 4-6 sentences with code examples]
+[In the original code, I think the first race condition was in the counters. For example, `contextSwitchCount++` looks like one small line, but actually the thread reads the value, increases it, then writes it back. If two threads do this near the same time, the final number may not include both updates. The same idea can happen with `completedProcessCount` and `totalWaitingTime`.
+
+The second race condition was in `executionLog`. It is shared between processes, and more than one thread may try to add a message to it. Since `ArrayList` is not safe for this type of access, the log could have missing or mixed entries. In a worse case, it may cause an exception while the program is running.]
 
 ---
 
@@ -129,7 +131,9 @@ I saved the code and checked that the program compiles and the semaphore code is
 
 **Your Answer**:
 
-[Your answer here - explain your implementation choices]
+[I used `ReentrantLock` when the problem was about protecting shared variables. In my code, the counters are shared, so I used `counterLock` before changing them. I also used another lock called `logLock` for `executionLog`, because the log is also shared and it should not be updated by more than one thread at the same time.
+
+For the semaphore, I used it in a different way. I used `cpuSemaphore` with one permit to control the CPU execution part. This means a process must acquire the semaphore before it executes, and then release it after finishing that part. I used one permit because the assignment wants the CPU access to be limited like a binary semaphore.]
 
 ---
 
@@ -138,7 +142,11 @@ I saved the code and checked that the program compiles and the semaphore code is
 
 **Your Answer**:
 
-[Your answer here - reference try-finally blocks, lock ordering, etc.]
+[Deadlock means that threads get stuck because each one is waiting for something that will not be released. For example, if a thread takes a lock and never releases it, other threads that need the same lock will keep waiting.
+
+To avoid this, I used `finally` when releasing locks. This is important because the release code will still run even if an error or interruption happens. I used this idea with `counterLock`, `logLock`, and the CPU semaphore.
+
+Another thing I tried to do is to keep the locked code short. I did not put the whole program inside the lock. I only locked the small part where the shared counter or log is updated, then released the lock directly.]
 
 ---
 
@@ -151,7 +159,11 @@ I saved the code and checked that the program compiles and the semaphore code is
 
 **Your Answer**:
 
-[Your answer here - explain coarse-grained vs fine-grained locking, independence of counters, concurrency implications. Show understanding of when to use each approach. 5-8 sentences expected.]
+[For Task 1, I used one lock called `counterLock` for the three counters. This means I used a coarse-grained lock. I chose this because the counter updates are small and simple, and using one lock made the code easier for me to follow.
+
+The disadvantage is that if one thread is updating `contextSwitchCount`, another thread cannot update `totalWaitingTime` at the exact same time, even though they are different variables. So this can reduce concurrency a little. If I used separate locks for each counter, that would be fine-grained locking and it would allow more parallel updates.
+
+For this assignment, I preferred one lock because it is clear and less confusing. But if the program was bigger or had many threads updating these counters a lot, then separate locks would probably be better for concurrency.]
 
 ---
 
@@ -160,18 +172,48 @@ I saved the code and checked that the program compiles and the semaphore code is
 ### Critical Section #1: Counter Variables
 
 **Which variables**: 
+`contextSwitchCount`, `completedProcessCount`,  `totalWaitingTime`.
 
 **Why they need protection**: 
+These variables are shared between the threads. The problem is that updating a counter is not always one step only. For example, the value can be read, changed, then written back. If two threads do this at almost the same time, one update may be lost and the final result may be wrong.
 
 **Synchronization mechanism used**: 
+I used `ReentrantLock`. I created one lock called `counterLock` and used it before updating the counter variables.
 
 **Code snippet**:
 ```java
 // Paste your implementation here
 ```
+public static final ReentrantLock counterLock = new ReentrantLock();
 
+public static void incrementContextSwitch() {
+    counterLock.lock();
+    try {
+        contextSwitchCount++;
+    } finally {
+        counterLock.unlock();
+    }
+}
+
+public static void incrementCompletedProcess() {
+    counterLock.lock();
+    try {
+        completedProcessCount++;
+    } finally {
+        counterLock.unlock();
+    }
+}
+
+public static void addWaitingTime(long time) {
+    counterLock.lock();
+    try {
+        totalWaitingTime += time;
+    } finally {
+        counterLock.unlock();
+    }
+}
 **Justification**: 
-
+I used the lock because these counter updates are critical sections. Only one thread should update them at a time, otherwise the result can depend on the timing of the threads. I also put unlock() inside finally because I want to make sure the lock is released after the update.
 ---
 
 ### Critical Section #2: Execution Log
